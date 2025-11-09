@@ -25,7 +25,9 @@ namespace Synapse.SignalBooster
 
             try
             {
-                logger.LogInformation("Starting DME extraction process");
+                logger.LogInformation("Starting DME extraction process. Environment: {Environment}, API Endpoint: {ApiUrl}", 
+                    Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production",
+                    config.ApiUrl);
 
                 // Get all .txt files from the notes folder
                 // Resolve path relative to the project directory, not the bin directory
@@ -33,6 +35,8 @@ namespace Synapse.SignalBooster
                 string notesFolder = Path.IsPathRooted(config.NotesFolder) 
                     ? config.NotesFolder 
                     : Path.Combine(projectDirectory, config.NotesFolder);
+                
+                logger.LogDebug("Resolved notes folder path: {NotesFolder}", notesFolder);
                 
                 if (!Directory.Exists(notesFolder))
                 {
@@ -58,7 +62,7 @@ namespace Synapse.SignalBooster
                 }
 
                 logger.LogInformation("Found {Count} note file(s) to process", noteFiles.Length);
-                logger.LogInformation("Using OpenAI-based DME extraction");
+                logger.LogInformation("Using OpenAI-based DME extraction with model: {Model}", config.OpenAiModel ?? "gpt-4o-mini");
 
                 // Get services
                 var openAiExtractor = serviceProvider.GetRequiredService<OpenAiDmeExtractor>();
@@ -68,7 +72,10 @@ namespace Synapse.SignalBooster
 
                 foreach (string noteFile in noteFiles)
                 {
-                    logger.LogInformation("Processing {FileName}", Path.GetFileName(noteFile));
+                    logger.LogInformation("Processing file {FileNumber}/{TotalFiles}: {FileName}", 
+                        successCount + failureCount + 1, 
+                        noteFiles.Length, 
+                        Path.GetFileName(noteFile));
 
                     // Read physician note
                     var noteResult = await noteReader.ReadNoteAsync(noteFile);
@@ -80,6 +87,7 @@ namespace Synapse.SignalBooster
                     }
 
                     string noteContent = noteResult.Value;
+                    logger.LogDebug("Read {CharCount} characters from {FileName}", noteContent.Length, Path.GetFileName(noteFile));
 
                     // Extract DME information using OpenAI
                     var extractionResult = await openAiExtractor.ExtractAsync(noteContent);
@@ -92,26 +100,35 @@ namespace Synapse.SignalBooster
                     }
 
                     DmeOrder order = extractionResult.Value;
-                    logger.LogInformation("Extracted DME: {DeviceType}", order.Device);
+                    logger.LogInformation("Extracted DME for {PatientName}: {DeviceType} ordered by {Provider}", 
+                        order.PatientName, 
+                        order.Device, 
+                        order.OrderingProvider);
 
-                    // Log the full extraction output
+                    // Log the full extraction output at Debug level to avoid log noise
                     string extractionJson = JsonSerializer.Serialize(order, new JsonSerializerOptions
                     {
                         WriteIndented = true,
                         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
                     });
-                    logger.LogInformation("Extraction output:\n{ExtractionJson}", extractionJson);
+                    logger.LogDebug("Full extraction output for {FileName}:\n{ExtractionJson}", Path.GetFileName(noteFile), extractionJson);
 
                     // Submit to API
+                    // Note: API submission is currently disabled for demo purposes
+                    // Uncomment the following lines to enable actual API submission
                     // var submitResult = await apiClient.SubmitExtractionAsync(config.ApiUrl, order);
                     // if (submitResult.IsFailure)
                     // {
-                    //     logger.LogError("Failed to submit extraction for {FileName}: {Error}", Path.GetFileName(noteFile), submitResult.Error);
+                    //     logger.LogError("Failed to submit extraction for {FileName} (Patient: {PatientName}): {Error}", 
+                    //         Path.GetFileName(noteFile), order.PatientName, submitResult.Error);
                     //     failureCount++;
                     //     continue;
                     // }
                     
-                    logger.LogInformation("Successfully submitted DME extraction for {FileName}", Path.GetFileName(noteFile));
+                    logger.LogInformation("Successfully processed DME extraction for {FileName} (Patient: {PatientName}, Device: {Device})", 
+                        Path.GetFileName(noteFile), 
+                        order.PatientName, 
+                        order.Device);
                     successCount++;
                 }
 

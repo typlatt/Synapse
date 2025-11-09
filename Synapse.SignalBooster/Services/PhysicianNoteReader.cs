@@ -39,16 +39,19 @@ namespace Synapse.SignalBooster.Services
             try
             {
                 string content = await File.ReadAllTextAsync(filePath);
+                _logger?.LogDebug("Read {ByteCount} bytes from file {FileName}", content.Length, Path.GetFileName(filePath));
 
                 // Handle JSON-wrapped notes (e.g., { "data": "..." })
                 if (content.TrimStart().StartsWith("{"))
                 {
+                    _logger?.LogDebug("Attempting to parse JSON format for {FileName}", Path.GetFileName(filePath));
                     try
                     {
                         using JsonDocument doc = JsonDocument.Parse(content);
                         if (doc.RootElement.TryGetProperty("data", out JsonElement dataElement))
                         {
                             string? extractedData = dataElement.GetString();
+                            _logger?.LogInformation("Successfully extracted note from JSON wrapper in {FileName}", Path.GetFileName(filePath));
                             return Result<string>.Success(extractedData ?? content);
                         }
                     }
@@ -58,6 +61,7 @@ namespace Synapse.SignalBooster.Services
                     }
                 }
 
+                _logger?.LogDebug("Successfully read plain text note from {FileName}", Path.GetFileName(filePath));
                 return Result<string>.Success(content);
             }
             catch (Exception ex)
@@ -83,6 +87,7 @@ namespace Synapse.SignalBooster.Services
             try
             {
                 string[] files = Directory.GetFiles(directoryPath, "*.txt");
+                _logger?.LogDebug("Found {FileCount} .txt files in {DirectoryPath}", files.Length, directoryPath);
                 return Result<string[]>.Success(files);
             }
             catch (Exception ex)

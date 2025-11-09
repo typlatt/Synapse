@@ -44,28 +44,42 @@ namespace Synapse.SignalBooster.Services
                     DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
                 });
 
-                _logger.LogDebug("Submitting to {Endpoint}: {Json}", endpoint, jsonContent);
+                _logger.LogInformation("Submitting DME order to {Endpoint} for patient {PatientName}, device {Device}", 
+                    endpoint, 
+                    order.PatientName, 
+                    order.Device);
+                _logger.LogDebug("Request payload: {Json}", jsonContent);
 
+                var requestStartTime = DateTime.UtcNow;
                 var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
                 HttpResponseMessage response = await _httpClient.PostAsync(endpoint, content);
+
+                var requestDuration = DateTime.UtcNow - requestStartTime;
 
                 if (!response.IsSuccessStatusCode)
                 {
                     string errorBody = await response.Content.ReadAsStringAsync();
                     _logger.LogError(
-                        "API request failed with status {StatusCode}: {ErrorBody}",
+                        "API request failed after {DurationMs}ms with status {StatusCode} for patient {PatientName}: {ErrorBody}",
+                        requestDuration.TotalMilliseconds,
                         response.StatusCode,
+                        order.PatientName,
                         errorBody
                     );
                     return Result<bool>.Failure($"API request failed with status {response.StatusCode}: {errorBody}");
                 }
 
-                _logger.LogInformation("Successfully submitted extraction to API");
+                _logger.LogInformation("Successfully submitted DME order for patient {PatientName} in {DurationMs}ms", 
+                    order.PatientName, 
+                    requestDuration.TotalMilliseconds);
                 return Result<bool>.Success(true);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error submitting to API");
+                _logger.LogError(ex, "Error submitting to API {Endpoint} for patient {PatientName}. Exception type: {ExceptionType}", 
+                    endpoint, 
+                    order.PatientName, 
+                    ex.GetType().Name);
                 return Result<bool>.Failure($"Error submitting to API: {ex.Message}");
             }
         }

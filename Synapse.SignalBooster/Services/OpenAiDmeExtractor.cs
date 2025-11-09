@@ -91,14 +91,18 @@ namespace Synapse.SignalBooster.Services
         {
             if (string.IsNullOrWhiteSpace(noteContent))
             {
+                _logger.LogWarning("Attempted to extract DME from empty note content");
                 return Result<DmeOrder>.Failure("Note content cannot be empty");
             }
 
             string userPrompt = $"Extract DME information from this physician note:\n\n{noteContent}";
+            _logger.LogDebug("Preparing OpenAI request with {CharCount} characters of note content", noteContent.Length);
 
             try
             {
                 _logger.LogDebug("Sending request to OpenAI API with structured JSON schema");
+
+                var requestStartTime = DateTime.UtcNow;
 
                 // Create BinaryData from the JSON schema string
                 var schemaBinaryData = BinaryData.FromString(_jsonSchema);
@@ -121,8 +125,11 @@ namespace Synapse.SignalBooster.Services
                     options
                 );
 
+                var requestDuration = DateTime.UtcNow - requestStartTime;
+                _logger.LogInformation("OpenAI API request completed in {DurationMs}ms", requestDuration.TotalMilliseconds);
+
                 string responseContent = completion.Content[0].Text;
-                _logger.LogInformation("Received response from OpenAI: {Response}", responseContent);
+                _logger.LogDebug("Received {CharCount} characters from OpenAI", responseContent.Length);
 
                 // Validate we have content
                 if (string.IsNullOrWhiteSpace(responseContent))
@@ -130,6 +137,8 @@ namespace Synapse.SignalBooster.Services
                     _logger.LogError("OpenAI returned empty response");
                     return Result<DmeOrder>.Failure("OpenAI returned empty response");
                 }
+
+                _logger.LogDebug("OpenAI response content: {Response}", responseContent);
 
                 // Parse JSON response
                 var order = JsonSerializer.Deserialize<DmeOrder>(responseContent, new JsonSerializerOptions
@@ -139,16 +148,19 @@ namespace Synapse.SignalBooster.Services
 
                 if (order == null)
                 {
-                    _logger.LogWarning("Failed to deserialize OpenAI response");
+                    _logger.LogWarning("Failed to deserialize OpenAI response to DmeOrder object");
                     return Result<DmeOrder>.Failure("Failed to deserialize OpenAI response");
                 }
 
-                _logger.LogInformation("Successfully extracted DME using OpenAI: {Device}", order.Device);
+                _logger.LogInformation("Successfully extracted DME: Device={Device}, Patient={PatientName}, Provider={Provider}", 
+                    order.Device, 
+                    order.PatientName, 
+                    order.OrderingProvider);
                 return Result<DmeOrder>.Success(order);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error calling OpenAI API");
+                _logger.LogError(ex, "Error calling OpenAI API. Exception type: {ExceptionType}", ex.GetType().Name);
                 return Result<DmeOrder>.Failure($"Error calling OpenAI API: {ex.Message}");
             }
         }
