@@ -116,14 +116,14 @@ namespace Synapse.SignalBooster
                     // Submit to API
                     // Note: API submission is currently disabled for demo purposes
                     // Uncomment the following lines to enable actual API submission
-                    // var submitResult = await apiClient.SubmitExtractionAsync(config.ApiUrl, order);
-                    // if (submitResult.IsFailure)
-                    // {
-                    //     logger.LogError("Failed to submit extraction for {FileName} (Patient: {PatientName}): {Error}", 
-                    //         Path.GetFileName(noteFile), order.PatientName, submitResult.Error);
-                    //     failureCount++;
-                    //     continue;
-                    // }
+                    var submitResult = await apiClient.SubmitExtractionAsync(config.ApiUrl, order);
+                    if (submitResult.IsFailure)
+                    {
+                        logger.LogError("Failed to submit extraction for {FileName} (Patient: {PatientName}): {Error}", 
+                            Path.GetFileName(noteFile), order.PatientName, submitResult.Error);
+                        failureCount++;
+                        continue;
+                    }
                     
                     logger.LogInformation("Successfully processed DME extraction for {FileName} (Patient: {PatientName}, Device: {Device})", 
                         Path.GetFileName(noteFile), 
