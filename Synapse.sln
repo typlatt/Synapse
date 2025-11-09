@@ -4,6 +4,8 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Synapse.SignalBooster", "Synapse.SignalBooster\Synapse.SignalBooster.csproj", "{8DCDD62A-61F9-EE6E-231A-038144BF7E92}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Synapse.SignalBooster.Tests", "Synapse.SignalBooster.Tests\Synapse.SignalBooster.Tests.csproj", "{9EDEE72B-62FA-FF7F-342B-149255C08F93}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -14,6 +16,10 @@ Global
 		{8DCDD62A-61F9-EE6E-231A-038144BF7E92}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8DCDD62A-61F9-EE6E-231A-038144BF7E92}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8DCDD62A-61F9-EE6E-231A-038144BF7E92}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9EDEE72B-62FA-FF7F-342B-149255C08F93}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9EDEE72B-62FA-FF7F-342B-149255C08F93}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9EDEE72B-62FA-FF7F-342B-149255C08F93}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9EDEE72B-62FA-FF7F-342B-149255C08F93}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
