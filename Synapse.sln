@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Synapse.SignalBooster", "Synapse.SignalBooster\Synapse.SignalBooster.csproj", "{8DCDD62A-61F9-EE6E-231A-038144BF7E92}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8DCDD62A-61F9-EE6E-231A-038144BF7E92}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DCDD62A-61F9-EE6E-231A-038144BF7E92}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8DCDD62A-61F9-EE6E-231A-038144BF7E92}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8DCDD62A-61F9-EE6E-231A-038144BF7E92}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {75CC35AF-8781-4973-AEA1-D74B6271F5EF}
+	EndGlobalSection
+EndGlobal
