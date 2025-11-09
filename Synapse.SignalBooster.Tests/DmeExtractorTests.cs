@@ -52,6 +52,9 @@ Ordering Physician: Dr. Cuddy";
             result.Liters.Should().Be("2 L");
             result.Usage.Should().Be("sleep and exertion");
             result.OrderingProvider.Should().Contain("Dr. Cuddy");
+            result.PatientName.Should().Be("Harold Finch");
+            result.Dob.Should().Be("04/12/1952");
+            result.Diagnosis.Should().Be("COPD");
         }
 
         [Fact]

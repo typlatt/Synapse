@@ -67,8 +67,22 @@ namespace Synapse.SignalBooster
 
                 _logger.LogInformation("Found {Count} note file(s) to process", noteFiles.Length);
 
+                // Determine which extractor to use
+                bool useOpenAi = !string.IsNullOrWhiteSpace(config.OpenAiApiKey) && 
+                                 config.OpenAiApiKey != "your-openai-api-key-here";
+
+                if (useOpenAi)
+                {
+                    _logger.LogInformation("Using OpenAI-based DME extraction");
+                }
+                else
+                {
+                    _logger.LogInformation("Using rule-based DME extraction (OpenAI API key not configured)");
+                }
+
                 // Process each note file
-                var extractor = new DmeExtractor(_logger);
+                DmeExtractor? ruleBasedExtractor = useOpenAi ? null : new DmeExtractor(_logger);
+                OpenAiDmeExtractor? openAiExtractor = useOpenAi ? new OpenAiDmeExtractor(config.OpenAiApiKey, _logger) : null;
                 var apiClient = new DmeApiClient(new HttpClient(), _logger);
                 int successCount = 0;
                 int failureCount = 0;
@@ -82,8 +96,21 @@ namespace Synapse.SignalBooster
                         // Read physician note
                         string noteContent = await ReadPhysicianNoteAsync(noteFile);
 
-                        // Extract DME information
-                        DmeExtraction extraction = extractor.Extract(noteContent);
+                        // Extract DME information using the appropriate extractor
+                        DmeExtraction extraction;
+                        if (useOpenAi && openAiExtractor != null)
+                        {
+                            extraction = await openAiExtractor.ExtractAsync(noteContent);
+                        }
+                        else if (ruleBasedExtractor != null)
+                        {
+                            extraction = ruleBasedExtractor.Extract(noteContent);
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException("No extractor available");
+                        }
+                        
                         _logger.LogInformation("Extracted DME: {DeviceType}", extraction.Device);
 
                         // Submit to API

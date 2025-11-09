@@ -34,6 +34,18 @@ namespace Synapse.SignalBooster.Models
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Usage { get; set; }
 
+        [JsonPropertyName("diagnosis")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Diagnosis { get; set; }
+
+        [JsonPropertyName("patient_name")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? PatientName { get; set; }
+
+        [JsonPropertyName("dob")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Dob { get; set; }
+
         public DmeExtraction()
         {
             AddOns = new List<string>();

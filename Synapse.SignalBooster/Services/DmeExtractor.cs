@@ -32,7 +32,10 @@ namespace Synapse.SignalBooster.Services
             var extraction = new DmeExtraction
             {
                 Device = ExtractDeviceType(noteContent),
-                OrderingProvider = ExtractOrderingProvider(noteContent)
+                OrderingProvider = ExtractOrderingProvider(noteContent),
+                PatientName = ExtractPatientName(noteContent),
+                Dob = ExtractDob(noteContent),
+                Diagnosis = ExtractDiagnosis(noteContent)
             };
 
             // Device-specific extraction
@@ -137,6 +140,39 @@ namespace Synapse.SignalBooster.Services
                 extraction.Usage = "sleep";
             else if (hasExertion)
                 extraction.Usage = "exertion";
+        }
+
+        private string? ExtractPatientName(string noteContent)
+        {
+            // Look for "Patient Name:" pattern
+            Match match = Regex.Match(noteContent, @"Patient\s+Name:\s*(.+?)(?:\n|$)", RegexOptions.IgnoreCase);
+            if (match.Success)
+            {
+                return match.Groups[1].Value.Trim();
+            }
+            return null;
+        }
+
+        private string? ExtractDob(string noteContent)
+        {
+            // Look for "DOB:" pattern
+            Match match = Regex.Match(noteContent, @"DOB:\s*(.+?)(?:\n|$)", RegexOptions.IgnoreCase);
+            if (match.Success)
+            {
+                return match.Groups[1].Value.Trim();
+            }
+            return null;
+        }
+
+        private string? ExtractDiagnosis(string noteContent)
+        {
+            // Look for "Diagnosis:" pattern
+            Match match = Regex.Match(noteContent, @"Diagnosis:\s*(.+?)(?:\n|$)", RegexOptions.IgnoreCase);
+            if (match.Success)
+            {
+                return match.Groups[1].Value.Trim();
+            }
+            return null;
         }
     }
 }
