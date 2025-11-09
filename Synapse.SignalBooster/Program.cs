@@ -29,35 +29,56 @@ namespace Synapse.SignalBooster
                     Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production",
                     config.ApiUrl);
 
-                // Get all .txt files from the notes folder
-                // Resolve path relative to the project directory, not the bin directory
-                string projectDirectory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../"));
-                string notesFolder = Path.IsPathRooted(config.NotesFolder) 
-                    ? config.NotesFolder 
-                    : Path.Combine(projectDirectory, config.NotesFolder);
-                
-                logger.LogDebug("Resolved notes folder path: {NotesFolder}", notesFolder);
-                
-                if (!Directory.Exists(notesFolder))
+                if (args.Length == 0)
                 {
-                    logger.LogError("Notes folder does not exist: {NotesFolder}", notesFolder);
+                    logger.LogWarning("Please provide a file path or 'all' to process all notes.");
+                    logger.LogInformation("Usage: dotnet run -- <file_path>|all");
                     return 1;
                 }
 
+                string[] noteFiles;
                 var noteReader = serviceProvider.GetRequiredService<PhysicianNoteReader>();
-                var noteFilesResult = noteReader.GetNoteFiles(notesFolder);
-                
-                if (noteFilesResult.IsFailure)
-                {
-                    logger.LogError("Failed to get note files: {Error}", noteFilesResult.Error);
-                    return 1;
-                }
 
-                string[] noteFiles = noteFilesResult.Value;
+                if (args[0].Equals("all", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Get all .txt files from the notes folder
+                    // Resolve path relative to the project directory, not the bin directory
+                    string projectDirectory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../"));
+                    string notesFolder = Path.IsPathRooted(config.NotesFolder) 
+                        ? config.NotesFolder 
+                        : Path.Combine(projectDirectory, config.NotesFolder);
+                    
+                    logger.LogDebug("Resolved notes folder path: {NotesFolder}", notesFolder);
+                    
+                    if (!Directory.Exists(notesFolder))
+                    {
+                        logger.LogError("Notes folder does not exist: {NotesFolder}", notesFolder);
+                        return 1;
+                    }
+
+                    var noteFilesResult = noteReader.GetNoteFiles(notesFolder);
+                    
+                    if (noteFilesResult.IsFailure)
+                    {
+                        logger.LogError("Failed to get note files: {Error}", noteFilesResult.Error);
+                        return 1;
+                    }
+                    noteFiles = noteFilesResult.Value;
+                }
+                else
+                {
+                    string filePath = args[0];
+                    if (!File.Exists(filePath))
+                    {
+                        logger.LogError("The file {FilePath} does not exist.", filePath);
+                        return 1;
+                    }
+                    noteFiles = [filePath];
+                }
                 
                 if (noteFiles.Length == 0)
                 {
-                    logger.LogWarning("No .txt files found in {NotesFolder}", notesFolder);
+                    logger.LogWarning("No note files found to process.");
                     return 0;
                 }
 
