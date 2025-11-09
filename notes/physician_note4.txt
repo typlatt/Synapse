@@ -1,0 +1,3 @@
+{
+  "data": "Patient Name: Robert Daniels\nDOB: 11/08/1968\nDiagnosis: Post-stroke hemiparesis (left side)\nPrescription: Lightweight manual wheelchair with elevating leg rests and anti-tip bars.\nUsage: As primary mobility device for home and community use.\nOrdering Physician: Dr. Yang\n"
+}

@@ -5,6 +5,15 @@ project.lock.json
 .DS_Store
 *.pyc
 
+# Secrets and sensitive files
+appsettings.*.json
+!appsettings.json
+!appsettings.production.json
+*.key
+*.pem
+.env
+.env.*
+
 # User-specific files
 *.suo
 *.user

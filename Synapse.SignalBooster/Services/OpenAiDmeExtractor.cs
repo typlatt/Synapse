@@ -14,81 +14,142 @@ namespace Synapse.SignalBooster.Services
     public class OpenAiDmeExtractor
     {
         private readonly ChatClient _chatClient;
-        private readonly ILogger _logger;
+        private readonly ILogger<OpenAiDmeExtractor> _logger;
+        private readonly string _systemPrompt;
+        private readonly string _jsonSchema;
 
-        public OpenAiDmeExtractor(string apiKey, ILogger logger)
+        private const string DefaultSystemPrompt = @"You are a medical document extraction specialist. Extract DME (Durable Medical Equipment) information from physician notes.
+
+        Use the following information as extraction guidelines:
+        - device: The type of medical equipment from the Prescription field (e.g., ""CPAP"", ""Oxygen Tank"", ""Wheelchair"", ""Blood glucose monitoring kit"", ""Diabetic shoes"")
+        - liters: The flow rate if specified (e.g., ""2 L""), or empty string if not applicable
+        - usage: When/how the equipment is used (e.g., ""sleep and exertion"", ""3 times daily""), or empty string if not specified
+        - diagnosis: The patient's diagnosis (e.g., ""COPD"", ""Type 2 Diabetes Mellitus"")
+        - ordering_provider: The doctor's name (e.g., ""Dr. Smith"", ""Dr. House"")
+        - patient_name: The patient's full name
+        - dob: The patient's date of birth in the format found in the note";
+
+        private const string DefaultJsonSchema = """
+        {
+            "type": "object",
+            "properties": {
+                "device": {
+                    "type": "string",
+                    "description": "The type of medical equipment"
+                },
+                "liters": {
+                    "type": "string",
+                    "description": "For oxygen, the flow rate (e.g., '2 L'), or empty string if not applicable"
+                },
+                "usage": {
+                    "type": "string",
+                    "description": "When/how the equipment is used (e.g., 'sleep and exertion', '3 times daily'), or empty string if not specified"
+                },
+                "diagnosis": {
+                    "type": "string",
+                    "description": "The patient's diagnosis"
+                },
+                "ordering_provider": {
+                    "type": "string",
+                    "description": "The doctor's name"
+                },
+                "patient_name": {
+                    "type": "string",
+                    "description": "The patient's full name"
+                },
+                "dob": {
+                    "type": "string",
+                    "description": "The patient's date of birth"
+                }
+            },
+            "required": ["device", "ordering_provider", "patient_name", "dob", "diagnosis", "liters", "usage"],
+            "additionalProperties": false
+        }
+        """;
+
+        public OpenAiDmeExtractor(string apiKey, ILogger<OpenAiDmeExtractor> logger, string? model = null, string? systemPrompt = null, string? jsonSchema = null)
         {
             if (string.IsNullOrWhiteSpace(apiKey))
                 throw new ArgumentException("OpenAI API key cannot be empty", nameof(apiKey));
             
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _chatClient = new ChatClient("gpt-4o-mini", new ApiKeyCredential(apiKey));
+            
+            string modelToUse = string.IsNullOrWhiteSpace(model) ? "gpt-4o-mini" : model;
+            _chatClient = new ChatClient(modelToUse, new ApiKeyCredential(apiKey));
+            _systemPrompt = string.IsNullOrWhiteSpace(systemPrompt) ? DefaultSystemPrompt : systemPrompt;
+            _jsonSchema = string.IsNullOrWhiteSpace(jsonSchema) ? DefaultJsonSchema : jsonSchema;
+            
+            _logger.LogInformation("OpenAI extractor initialized with model: {Model}", modelToUse);
         }
 
         /// <summary>
         /// Extracts DME requirements from a physician note using OpenAI.
         /// </summary>
         /// <param name="noteContent">The raw physician note text</param>
-        /// <returns>Structured DME extraction data</returns>
-        public async Task<DmeExtraction> ExtractAsync(string noteContent)
+        /// <returns>Result containing structured DME order data or an error message</returns>
+        public async Task<Result<DmeOrder>> ExtractAsync(string noteContent)
         {
             if (string.IsNullOrWhiteSpace(noteContent))
             {
-                throw new ArgumentException("Note content cannot be empty", nameof(noteContent));
+                return Result<DmeOrder>.Failure("Note content cannot be empty");
             }
-
-            string systemPrompt = @"You are a medical document extraction specialist. Extract DME (Durable Medical Equipment) information from physician notes.
-
-Extract the following information in JSON format:
-- device: The type of medical equipment (e.g., ""CPAP"", ""Oxygen Tank"", ""Wheelchair"", or ""Unknown"")
-- mask_type: For CPAP, the type of mask (e.g., ""full face"", ""nasal"")
-- add_ons: Array of additional equipment (e.g., [""humidifier""])
-- qualifier: Any qualifying medical information (e.g., ""AHI > 20"")
-- ordering_provider: The doctor's name (e.g., ""Dr. Smith"")
-- liters: For oxygen, the flow rate (e.g., ""2 L"")
-- usage: For oxygen, when it's used (e.g., ""sleep and exertion"")
-- diagnosis: The patient's diagnosis (e.g., ""COPD"", ""Severe sleep apnea"")
-- patient_name: The patient's full name
-- dob: The patient's date of birth in the format found in the note
-
-Return ONLY valid JSON. Omit null or empty fields.";
 
             string userPrompt = $"Extract DME information from this physician note:\n\n{noteContent}";
 
             try
             {
-                _logger.LogDebug("Sending request to OpenAI API");
+                _logger.LogDebug("Sending request to OpenAI API with structured JSON schema");
+
+                // Create BinaryData from the JSON schema string
+                var schemaBinaryData = BinaryData.FromString(_jsonSchema);
+
+                var options = new ChatCompletionOptions
+                {
+                    ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
+                        jsonSchemaFormatName: "dme_order",
+                        jsonSchema: schemaBinaryData,
+                        jsonSchemaIsStrict: true
+                    )
+                };
 
                 ChatCompletion completion = await _chatClient.CompleteChatAsync(
                     new ChatMessage[]
                     {
-                        new SystemChatMessage(systemPrompt),
+                        new SystemChatMessage(_systemPrompt),
                         new UserChatMessage(userPrompt)
-                    }
+                    },
+                    options
                 );
 
                 string responseContent = completion.Content[0].Text;
-                _logger.LogDebug("Received response from OpenAI: {Response}", responseContent);
+                _logger.LogInformation("Received response from OpenAI: {Response}", responseContent);
+
+                // Validate we have content
+                if (string.IsNullOrWhiteSpace(responseContent))
+                {
+                    _logger.LogError("OpenAI returned empty response");
+                    return Result<DmeOrder>.Failure("OpenAI returned empty response");
+                }
 
                 // Parse JSON response
-                var extraction = JsonSerializer.Deserialize<DmeExtraction>(responseContent, new JsonSerializerOptions
+                var order = JsonSerializer.Deserialize<DmeOrder>(responseContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
 
-                if (extraction == null)
+                if (order == null)
                 {
-                    _logger.LogWarning("Failed to deserialize OpenAI response, returning default extraction");
-                    return new DmeExtraction();
+                    _logger.LogWarning("Failed to deserialize OpenAI response");
+                    return Result<DmeOrder>.Failure("Failed to deserialize OpenAI response");
                 }
 
-                _logger.LogInformation("Successfully extracted DME using OpenAI: {Device}", extraction.Device);
-                return extraction;
+                _logger.LogInformation("Successfully extracted DME using OpenAI: {Device}", order.Device);
+                return Result<DmeOrder>.Success(order);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error calling OpenAI API");
-                throw;
+                return Result<DmeOrder>.Failure($"Error calling OpenAI API: {ex.Message}");
             }
         }
     }

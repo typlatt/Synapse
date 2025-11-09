@@ -1,0 +1,6 @@
+Patient Name: Maria Lopez
+DOB: 07/15/1976
+Diagnosis: Type 2 Diabetes Mellitus with peripheral neuropathy
+Prescription: Blood glucose monitoring kit with lancets and test strips; diabetic shoes with custom insoles.
+Usage: Check blood sugar 3 times daily; wear shoes during waking hours.
+Ordering Physician: Dr. House

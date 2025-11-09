@@ -9,55 +9,65 @@ using Synapse.SignalBooster.Models;
 namespace Synapse.SignalBooster.Services
 {
     /// <summary>
-    /// Client for submitting DME extractions to external API.
+    /// Client for submitting DME orders to external API.
     /// </summary>
     public class DmeApiClient
     {
         private readonly HttpClient _httpClient;
-        private readonly ILogger _logger;
+        private readonly ILogger<DmeApiClient> _logger;
 
-        public DmeApiClient(HttpClient httpClient, ILogger logger)
+        public DmeApiClient(HttpClient httpClient, ILogger<DmeApiClient> logger)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <summary>
-        /// Submits a DME extraction to the specified API endpoint.
+        /// Submits a DME order to the specified API endpoint.
         /// </summary>
         /// <param name="endpoint">API endpoint URL</param>
-        /// <param name="extraction">DME extraction data to submit</param>
-        /// <exception cref="HttpRequestException">Thrown when API request fails</exception>
-        public async Task SubmitExtractionAsync(string endpoint, DmeExtraction extraction)
+        /// <param name="order">DME order data to submit</param>
+        /// <returns>Result indicating success or failure with error message</returns>
+        public async Task<Result<bool>> SubmitExtractionAsync(string endpoint, DmeOrder order)
         {
             if (string.IsNullOrWhiteSpace(endpoint))
-                throw new ArgumentException("Endpoint cannot be empty", nameof(endpoint));
-            if (extraction == null)
-                throw new ArgumentNullException(nameof(extraction));
+                return Result<bool>.Failure("Endpoint cannot be empty");
+            
+            if (order == null)
+                return Result<bool>.Failure("Order cannot be null");
 
-            string jsonContent = JsonSerializer.Serialize(extraction, new JsonSerializerOptions
+            try
             {
-                WriteIndented = false,
-                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-            });
+                string jsonContent = JsonSerializer.Serialize(order, new JsonSerializerOptions
+                {
+                    WriteIndented = false,
+                    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                });
 
-            _logger.LogDebug("Submitting to {Endpoint}: {Json}", endpoint, jsonContent);
+                _logger.LogDebug("Submitting to {Endpoint}: {Json}", endpoint, jsonContent);
 
-            var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-            HttpResponseMessage response = await _httpClient.PostAsync(endpoint, content);
+                var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+                HttpResponseMessage response = await _httpClient.PostAsync(endpoint, content);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                string errorBody = await response.Content.ReadAsStringAsync();
-                _logger.LogError(
-                    "API request failed with status {StatusCode}: {ErrorBody}",
-                    response.StatusCode,
-                    errorBody
-                );
-                response.EnsureSuccessStatusCode();
+                if (!response.IsSuccessStatusCode)
+                {
+                    string errorBody = await response.Content.ReadAsStringAsync();
+                    _logger.LogError(
+                        "API request failed with status {StatusCode}: {ErrorBody}",
+                        response.StatusCode,
+                        errorBody
+                    );
+                    return Result<bool>.Failure($"API request failed with status {response.StatusCode}: {errorBody}");
+                }
+
+                _logger.LogInformation("Successfully submitted extraction to API");
+                return Result<bool>.Success(true);
             }
-
-            _logger.LogInformation("Successfully submitted extraction to API");
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error submitting to API");
+                return Result<bool>.Failure($"Error submitting to API: {ex.Message}");
+            }
         }
     }
 }

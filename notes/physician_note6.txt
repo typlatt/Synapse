@@ -1,0 +1,3 @@
+{
+  "data": "Patient Name: Sandra Ellis\nDOB: 08/10/1958\nDiagnosis: Chronic heart failure (NYHA Class III)\nPrescription: Home hospital bed with head elevation control and pressure-relief mattress.\nUsage: Continuous use at home for positioning and comfort.\nOrdering Physician: Dr. Bailey\n"
+}
