@@ -3,16 +3,24 @@
 > **A .NET application that extracts Durable Medical Equipment (DME) orders from physician notes using AI-powered natural language processing.**
 
 [![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
-[![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o--mini-412991?logo=openai)](https://platform.openai.com/)
+[![OpenAI](https://img.shields.io/badge/OpenAI-2.1.0-412991?logo=openai)](https://platform.openai.com/)
+[![Serilog](https://img.shields.io/badge/Serilog-9.0.2-1BA1E2?logo=serilog)](https://serilog.net/)
+[![Microsoft Extensions](https://img.shields.io/badge/Microsoft%20Extensions-9.0.10-5C2D91?logo=microsoft)](https://docs.microsoft.com/en-us/dotnet/core/extensions/)
 
 
-## Prerequisites
+## Development
 
-- .NET 9 SDK
-- OpenAI API key
-- DME API access
+**Development Environment:**
+- MacBook Pro M4 Pro
+- Visual Studio Code
+- .NET CLI and SDK
+- GitHub for version control
 
-## Setup
+**AI Development Tools:**
+- GitHub Copilot with Claude Sonnet 4.5
+- Initially started with GitHub Speck Kit but found Claude's tendency to over-engineer solutions required more focused constraints to maintain project simplicity
+
+## Setup  
 
 1. **Clone and navigate:**
    ```bash
