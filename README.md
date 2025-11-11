@@ -15,8 +15,6 @@
 SignalBooster refactors a legacy note parser into a **modular, maintainable**, and **AI-integrated** data extraction pipeline.  
 It reads physician notes, extracts relevant DME information (e.g., CPAP, oxygen tanks, wheelchairs), and posts structured JSON to a DME API endpoint.
 
-The project emphasizes **clarity, testability, and production readiness**, replacing monolithic parsing logic with composable services and structured logging.
-
 ---
 
 ## 🧠 Architecture Highlights
@@ -105,6 +103,7 @@ This modular layout emphasizes **separation of concerns** — each class handles
 - HIPAA-compliant data handling & governance
 - I imagine there is a lot more data fields that could be extracted in a real world scenario. 
 - Depending on the confidence score of the LLM extraction, I would consider adding a fallback method based on pattern matching. ```Regex Baby!!```
+- Logs would be pushed to a centralized logging platform or picked up by some sort of log ingestion
 
 ## 🚀 Setup
 
